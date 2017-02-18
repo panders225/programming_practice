@@ -1,0 +1,287 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 62         
+ 63         /************************************************************************
+ 64          * Last Run Date: 18 Feb 2017            *
+ 65          * Program Name: panders2_hw06_prog.sas*
+ 66          * Program Location: C:/Users/Philip/Schools/TAMU/STAT_657/*
+ 67          *SASUniversityEdition/myfolders/homework/git_hw/hw_06/sasprogs/*
+ 68          * Creation Date: 13 Feb 2017*
+ 69          * Author: Philip Anderson*
+ 70          * Purpose: Meeting objectives for Assignment 06*
+ 71          * Inputs: scholarship03.sas7bdat         *
+ 72          * Output: panders2_hw06_output.pdf*
+ 73          * Modification History: Finished work on 18 Feb*
+ 74          * Execution Instructions: N/A - run as-is*
+ 75         */**********************************************************************;
+ 76         
+ 77         /* Using the library from the previous hw assignment*/
+ 78         libname prev '/folders/myfolders/homework/git_hw/hw_05/sasdata' access=readonly;
+ NOTE: Libref PREV was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /folders/myfolders/homework/git_hw/hw_05/sasdata
+ 79         
+ 80         /*output pdf*/
+ 81         filename out_pdf '/folders/myfolders/homework/git_hw/hw_06/output/panders2_hw06_output.pdf';
+ 82         
+ 83         /* Assign sasdata library to the directory for this assignment*/
+ 84         libname sasdata '/folders/myfolders/homework/git_hw/hw_06/sasdata' access=readonly;
+ NOTE: Libref SASDATA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /folders/myfolders/homework/git_hw/hw_06/sasdata
+ 85         
+ 86         /* link to the orion datasets*/
+ 87         libname orion '/folders/myfolders/orion_dat/sasdata' access=readonly;
+ NOTE: Libref ORION was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /folders/myfolders/orion_dat/sasdata
+ 88         
+ 89         /* remove page numbers from output */
+ 90         options nonumber;
+ 91         /* Question 1 - Create the report from step 4 of assignment 05, using an in-line view */
+ 92         
+ 93         /* Open up our output pdf */
+ 94         ods pdf file=out_pdf;
+ NOTE: Writing ODS PDF output to DISK destination "OUT_PDF", printer "PDF".
+ 95         
+ 96         title '2003 NCAA Team Scoring Analysis';
+ 97         proc sql;
+ 98         select
+ 99         /* b. keep only one record per school */
+ 100        team
+ 101        /* c. create some additional columns */
+ 102        , count(distinct player) as Players
+ 103        , round(avg(ppg), 0.1) as team_avg label='Average PPG'
+ 104        , (calculated team_avg / tot_avg_ppg ) as t_v_o label='Team vs. Overall' format=percent8.1
+ 105        /* d. Create a column that changes labels based on team's relative ppg */
+ 106        , (case when calculated t_v_o > 1 then 'Above Avg.' else 'Avg. or Below' end) as ppg_lev
+ 107           label='PPG Level'
+ 108            from
+ 109            (
+ 110            select
+ 111            team
+ 112            , player
+ 113            , ppg
+ 114        /*     , (select avg(ppg) from prev.scholarship03 ) as tot_avg_ppg */
+ 115            , average_points as tot_avg_ppg
+ 116            from
+ 117            /* a. use an inline view instead of a pre-created dataset*/
+ 118                (
+ 119                    select
+ 120                    player
+ 121                    , team
+ 122                    , region
+ 123                    , PPG
+ 124                    /* remerge a global summary statistic of mean ppg */
+ 125                    , mean(PPG) as Average_Points
+ 126                    from
+ 127                    prev.scholarship03
+ 128                    /* a. remove players with team seeds of 15 or 16 */
+ 129                    where Seed_ not in (15, 16)
+ 130                )
+ 131        
+ 132            )
+ 133        group by
+ 134        team
+ 135        /* e. only keep teams with 5 or more players */
+ 136        having calculated Players >= 5
+ 137        /* f. sort by PPG highest to lowest */
+ 138        order by
+ 139        calculated team_avg desc
+ 140        ;
+ NOTE: Data file PREV.SCHOLARSHIP03.DATA is in a format that is native to another host, or the file encoding does not match the 
+       session encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: The query requires remerging summary statistics back with the original data.
+ 141        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.14 seconds
+       cpu time            0.14 seconds
+       
+ 
+ 142        
+ 143        /* Question 2 - examine the givers.sas7bdat data set */
+ 144        
+ 145        /* Question 3 - create a list of records from givers with duplicate names */
+ 146        
+ 147        title 'Duplicate Givers';
+ 148        proc sql;
+ 149        select
+ 150        employee_id
+ 151        , employee_name
+ 152        , qtr1
+ 153        , qtr2
+ 154        , qtr3
+ 155        , qtr4
+ 156        , recipients
+ 157        from
+ 158        sasdata.givers
+ 159        where employee_name in
+ 160                            (
+ 161                            select
+ 162                            employee_name
+ 163                            from
+ 164                            (
+ 165                            select
+ 166                            employee_name
+ 167                            , count(employee_id) as num_recs
+ 168                            from
+ 169                            sasdata.givers
+ 170                            group by
+ 171                            employee_name
+ 172                            having
+ 173                            num_recs > 1
+ 174                            ) )
+ 175        order by
+ 176        employee_name
+ 177        , employee_id desc
+ 178        ;
+ NOTE: Data file SASDATA.GIVERS.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file SASDATA.GIVERS.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 179        
+ 180        /*
+ 181        Question 4 - create a list of Active Employees who are not in the Giver list
+ 182        Use a subquery in the where cluase to determine which IDs to eliminate
+ 183        */
+ 184        
+ 185        title 'Active Employees not on Giver List';
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.15 seconds
+       cpu time            0.14 seconds
+       
+ 186        proc sql;
+ 
+ 187        select
+ 188        employee_id
+ 189        , employee_name
+ 190        from
+ 191        orion.employee_addresses
+ 192        where employee_id not in (select distinct employee_id from sasdata.givers)
+ 193        and employee_id in (select distinct employee_id from orion.employee_payroll where employee_term_date = .)
+ 194        order by
+ 195        employee_name
+ 196        ;
+ NOTE: Data file ORION.EMPLOYEE_ADDRESSES.DATA is in a format that is native to another host, or the file encoding does not match 
+       the session encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might 
+       reduce performance.
+ NOTE: Data file SASDATA.GIVERS.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file ORION.EMPLOYEE_PAYROLL.DATA is in a format that is native to another host, or the file encoding does not match the 
+       session encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 197        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.22 seconds
+       cpu time            0.21 seconds
+       
+ 
+ 198        
+ 199        /*
+ 200        Question 5 - use data in one or more of the tables above to create a list of people from the givers table
+ 201        who are no longer active employees at Orion Star
+ 202        */
+ 203        title 'Terminated Givers';
+ 204        proc sql;
+ 205        select
+ 206        giv.employee_id as ID
+ 207        , giv.employee_name as Name
+ 208        , pay.employee_gender as Gender
+ 209        
+ 210        from
+ 211        sasdata.givers giv
+ 212        
+ 213        inner join
+ 214        orion.employee_payroll pay
+ 215        on giv.employee_id = pay.employee_id
+ 216        
+ 217        where pay.employee_term_date ^= .
+ 218        
+ 219        order by
+ 220        giv.employee_name
+ 221        ;
+ NOTE: Data file SASDATA.GIVERS.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file ORION.EMPLOYEE_PAYROLL.DATA is in a format that is native to another host, or the file encoding does not match the 
+       session encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 222        
+ 223        
+ 224        /*
+ 225        Question 6 - Create a report using a multiway-join
+ 226        List customers who purchased products from product_groups that are not designated as being shoes
+ 227        Sort the list by country, birth month, customer name, product group
+ 228        */
+ 229        
+ 230        title "Orion's Customers Who Bought Products Other Than Shoes" ;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.10 seconds
+       cpu time            0.08 seconds
+       
+ 231        proc sql;
+ 
+ 232        select
+ 233        distinct
+ 234        cust.customer_id as ID label='ID'
+ 235        , cust.customer_name as Name label='Name'
+ 236        , cust.customer_address as Address label='Address'
+ 237        , cust.country label='Customer Country'
+ 238        , prods.product_group label='Product Group'
+ 239        , month(cust.birth_date) as birth_month label='Birth Month'
+ 240        
+ 241        from
+ 242        orion.customer cust
+ 243        
+ 244        inner join
+ 245        orion.order_fact fct
+ 246        on fct.customer_id = cust.customer_id
+ 247        
+ 248        inner join
+ 249        orion.product_dim prods
+ 250        on prods.product_id = fct.product_id
+ 251        
+ 252        where lowcase(prods.product_group) not like  '%shoe%'
+ 253        
+ 254        order by
+ 255        cust.country
+ 256        , month(cust.birth_date)
+ 257        , cust.customer_name
+ 258        , prods.product_group
+ 259        
+ 260        ;
+ NOTE: Data file ORION.CUSTOMER.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file ORION.ORDER_FACT.DATA is in a format that is native to another host, or the file encoding does not match the 
+       session encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file ORION.PRODUCT_DIM.DATA is in a format that is native to another host, or the file encoding does not match the 
+       session encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ WARNING: The query as specified involves ordering by an item that doesn't appear in its SELECT clause. Since you are ordering the 
+          output of a SELECT DISTINCT it may appear that some duplicates have not been eliminated.
+ 261        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.91 seconds
+       cpu time            0.87 seconds
+       
+ 
+ 262        
+ 263        
+ 264        
+ 265        
+ 266        /* Question 7 - Housekeeping and PDF close*/
+ 267        
+ 268        ods pdf close;
+ NOTE: ODS PDF printed 21 pages to /folders/myfolders/homework/git_hw/hw_06/output/panders2_hw06_output.pdf.
+ 269        title;
+ 270        
+ 271        
+ 272        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 285        
