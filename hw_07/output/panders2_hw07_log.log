@@ -1,0 +1,209 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 62         
+ 63         /************************************************************************
+ 64          * Last Run Date: 26 Feb 2017            *
+ 65          * Program Name: panders2_hw07_prog.sas*
+ 66          * Program Location: C:/Users/Philip/Schools/TAMU/STAT_657/*
+ 67          *SASUniversityEdition/myfolders/homework/git_hw/hw_07/sasprogs/*
+ 68          * Creation Date: 26 Feb 2017*
+ 69          * Author: Philip Anderson*
+ 70          * Purpose: Meeting objectives for Assignment 07*
+ 71          * Inputs: ncaam[03,04,06].sas7bdat         *
+ 72          * Output: panders2_hw07_output.pdf*
+ 73          * Modification History: *
+ 74          * Execution Instructions: N/A - run as-is*
+ 75         */**********************************************************************;
+ 76         
+ 77         
+ 78         /* the libname you use to access the previous datasets must be set to readonly */
+ 79         libname ncaa '/folders/myfolders/homework/git_hw/hw_04/sasdata' access=readonly;
+ NOTE: Libref NCAA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /folders/myfolders/homework/git_hw/hw_04/sasdata
+ 80         
+ 81         filename pdf_out '/folders/myfolders/homework/git_hw/hw_07/output/panders2_hw07_output.pdf' ;
+ 82         
+ 83         
+ 84         options nodate nonumber;
+ 85         ods pdf file=pdf_out bookmarkgen=NO;
+ NOTE: Writing ODS PDF output to DISK destination "PDF_OUT", printer "PDF".
+ 86         /*Question 1*/
+ 87         /*
+ 88         Create a report that combines the 2003 and 2004 statistics of only those players who played in both the 2003
+ 89         and 2004 NCAA championships.  Match the tables on both the player name and team
+ 90         */
+ 91         title 'Players in Both 2003 and 2004 NCAA Championship Tournaments';
+ 92         proc sql;
+ 93         select
+ 94         *
+ 95         from
+ 96         (
+ 97         select
+ 98         '2003' as year label='Year'
+ 99         , three.team
+ 100        , three.seed_
+ 101        , three.player
+ 102        , three.ppg
+ 103        from
+ 104        ncaa.ncaam03 three
+ 105        
+ 106        inner join
+ 107        ncaa.ncaam04 four
+ 108        on four.player = three.player
+ 109        and four.team = three.team
+ 110        
+ 111        /* use a set operator*/
+ 112        UNION
+ 113        
+ 114        select
+ 115        '2004' as year
+ 116        , four.team
+ 117        , four.seed_
+ 118        , four.player
+ 119        , four.ppg
+ 120        from
+ 121        ncaa.ncaam04 four
+ 122        
+ 123        inner join
+ 124        ncaa.ncaam03 three
+ 125        on three.player = four.player
+ 126        and three.team = four.team
+ 127        )
+ 128        order by
+ 129        player
+ 130        , ppg desc
+ 131        ;
+ NOTE: Data file NCAA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 132        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.16 seconds
+       cpu time            0.15 seconds
+       
+ 
+ 133        
+ 134        /* Question 2 - Create a report of teams that played in all three
+ 135        of the tournaments for which data were provided.  Use the
+ 136        INTERSECT operator to determine which schools were in all three tournaments*/
+ 137        
+ 138        options date;
+ 139        title 'Comparison of Teams from 2003, 2004, and 2006 NCAA Championship Tournaments';
+ 140        proc sql;
+ 141        
+ 142        select
+ 143        team
+ 144        , seed_
+ 145        , avg_ppg format 8.1
+ 146        , year
+ 147        from
+ 148        (
+ 149        select
+ 150        team
+ 151        , seed_
+ 152        , avg(ppg) as avg_ppg label='Average Player PPG'
+ 153        , '2003' as year label='Year'
+ 154        from
+ 155        ncaa.ncaam03
+ 156        where team in (select team from ncaa.ncaam03 INTERSECT select team from ncaa.ncaam04 INTERSECT select school as team from
+ 156      !  ncaa.ncaam06)
+ 157        group by
+ 158        team
+ 159        , seed_
+ 160        
+ 161        UNION
+ 162        
+ 163        select
+ 164        team
+ 165        , seed_
+ 166        , avg(ppg) as avg_ppg
+ 167        , '2004' as year
+ 168        from
+ 169        ncaa.ncaam04
+ 170        where team in (select team from ncaa.ncaam03 INTERSECT select team from ncaa.ncaam04 INTERSECT select school as team from
+ 170      !  ncaa.ncaam06)
+ 171        group by
+ 172        team
+ 173        , seed_
+ 174        
+ 175        UNION
+ 176        
+ 177        select
+ 178        school as team
+ 179        , seed as seed_
+ 180        , avg(ppg) as avg_ppg
+ 181        , '2006' as year
+ 182        from
+ 183        ncaa.ncaam06
+ 184        where school in (select team from ncaa.ncaam03 INTERSECT select team from ncaa.ncaam04 INTERSECT select school as team
+ 184      ! from ncaa.ncaam06)
+ 185        group by
+ 186        team
+ 187        , seed_
+ 188        )
+ 189        order by
+ 190        team
+ 191        , year
+ 192        ;
+ NOTE: Data file NCAA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM06.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM06.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM06.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file NCAA.NCAAM06.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 193        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.14 seconds
+       cpu time            0.12 seconds
+       
+ 
+ 194        
+ 195        /*Cleanup*/
+ 196        title;
+ 197        ods pdf close;
+ NOTE: ODS PDF printed 3 pages to /folders/myfolders/homework/git_hw/hw_07/output/panders2_hw07_output.pdf.
+ 198        
+ 199        
+ 200        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 213        

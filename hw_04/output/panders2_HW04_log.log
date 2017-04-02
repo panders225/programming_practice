@@ -1,0 +1,338 @@
+ 
+ 1          OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ NOTE: ODS statements in the SAS Studio environment may disable some output features.
+ 62         
+ 63         
+ 64         /************************************************************************
+ 65          * Last Run Date: 05 Feb 2017            *
+ 66          * Program Name: panders2_hw04_prog.sas*
+ 67          * Program Location: C:/Users/Philip/Schools/TAMU/STAT_657/*
+ 68          *SASUniversityEdition/myfolders/homework/hw_04/sasprogs/*
+ 69          * Creation Date: 30 Jan 2017*
+ 70          * Author: Philip Anderson*
+ 71          * Purpose: Meeting objectives for Assignment 04*
+ 72          * Inputs: ncaam03.sas7bdat, ncaam04.sas7bdat, ncaam06.sas7bdat         *
+ 73          * Output: panders2_hw04_output.pdf*
+ 74          * Modification History:*
+ 75          * Execution Instructions: N/A - run as-is*
+ 76         */**********************************************************************;
+ 77         
+ 78         /* Question 1 - Assign a readonly libref to the location of the data for this assignment*/
+ 79         libname sasdata '/folders/myfolders/homework/git_hw/hw_04/sasdata' access=readonly;
+ NOTE: Libref SASDATA was successfully assigned as follows: 
+       Engine:        V9 
+       Physical Name: /folders/myfolders/homework/git_hw/hw_04/sasdata
+ 80         
+ 81         /* Assign a fileref for the pdf output of this assignment*/
+ 82         filename out_dat '/folders/myfolders/homework/git_hw/hw_04/output/panders2_hw04_output.pdf' ;
+ 83         
+ 84         
+ 85         /* Question 2 - open a pdf destination to capture the output from the following procedures */
+ 86         /* Generate bookmarks, but not by default; choose a style that incorporates color */
+ 87         ods pdf (ID=one) file = out_dat bookmarkgen=YES style=Festival;
+ NOTE: Writing ODS PDF(ONE) output to DISK destination "OUT_DAT", printer "PDF".
+ 88         
+ 89         
+ 90         /* Question 3 - Concatenate ncaam03 and ncaam04 */
+ 91         /* Note - these data sets have different fields - will result in an append coercion*/
+ 92         
+ 93         data ncaam_03_04;
+ 94             set sasdata.ncaam03
+ 95                 sasdata.ncaam04
+ 96             ;
+ NOTE: Data file SASDATA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ NOTE: Data file SASDATA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 97         run;
+ 
+ NOTE: There were 267 observations read from the data set SASDATA.NCAAM03.
+ NOTE: There were 73 observations read from the data set SASDATA.NCAAM04.
+ NOTE: The data set WORK.NCAAM_03_04 has 340 observations and 10 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.02 seconds
+       cpu time            0.01 seconds
+       
+ 
+ 98         
+ 99         /* Question 4 - Use SQL to print the data portion of the new data set - match the titles and footnotes in sample output*/
+ 100        
+ 101        title1 "Top Teams from 2003 and 2004 Men's NCAA Tournaments";
+ 102        title2 "Concatenated Data";
+ 103        
+ 104        proc sql;
+ 105        select
+ 106        *
+ 107        from
+ 108        ncaam_03_04
+ 109        ;
+ 110        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           1.16 seconds
+       cpu time            1.15 seconds
+       
+ 
+ 111        
+ 112        
+ 113        /* Question 5 - Interleave ncaam03 and ncaam04 based on player name and team */
+ 114        /* Interleaving will require a prior sort */
+ 115        
+ 116        proc sort data=sasdata.ncaam03 out=ncaam03;
+ NOTE: Data file SASDATA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 117            by player team;
+ 118        
+ 
+ NOTE: There were 267 observations read from the data set SASDATA.NCAAM03.
+ NOTE: The data set WORK.NCAAM03 has 267 observations and 9 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.02 seconds
+       cpu time            0.02 seconds
+       
+ 119        proc sort data=sasdata.ncaam04 out=ncaam04;
+ 
+ NOTE: Data file SASDATA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 120            by player team;
+ 121        
+ 
+ NOTE: There were 73 observations read from the data set SASDATA.NCAAM04.
+ NOTE: The data set WORK.NCAAM04 has 73 observations and 9 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.01 seconds
+       cpu time            0.01 seconds
+       
+ 122        data ncaam_interleave ;
+ 
+ 123            /* eliminate any variable that does not appear in both data sets */
+ 124             set ncaam03 (drop=region)
+ 125                ncaam04 (drop=f3)
+ 126            ;
+ 127            by player team;
+ 128        run;
+ 
+ NOTE: There were 267 observations read from the data set WORK.NCAAM03.
+ NOTE: There were 73 observations read from the data set WORK.NCAAM04.
+ NOTE: The data set WORK.NCAAM_INTERLEAVE has 340 observations and 8 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       cpu time            0.00 seconds
+       
+ 
+ 129        
+ 130        
+ 131        /* Question 6 - use the print procedure and a data set option to print the first 30 records of interleaved data set */
+ 132        
+ 133        data inter;
+ 134            set ncaam_interleave (obs=30);
+ 135        
+ 136        /* Update the report title*/
+ 137        title2 'First 30 Records of Interleaved Data';
+ 138        
+ 
+ NOTE: There were 30 observations read from the data set WORK.NCAAM_INTERLEAVE.
+ NOTE: The data set WORK.INTER has 30 observations and 8 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       cpu time            0.01 seconds
+       
+ 139        proc print data=inter;
+ 
+ 140        run;
+ 
+ NOTE: There were 30 observations read from the data set WORK.INTER.
+ NOTE: PROCEDURE PRINT used (Total process time):
+       real time           0.14 seconds
+       cpu time            0.14 seconds
+       
+ 
+ 141        
+ 142        /* Question 7*/
+ 143        /* Use the match-merge process to create a data set of only those who played in both the 2003 and 2004 tournaments */
+ 144        /* Our data sets will already be sorted by player and team from a previous module*/
+ 145        
+ 146        data ncaam_mm;
+ 147            merge ncaam03 (in=a drop=region)
+ 148                  ncaam04 (in=b drop=f3)
+ 149            ;
+ 150            by player team;
+ 151            if a and b;
+ 152        run;
+ 
+ NOTE: There were 267 observations read from the data set WORK.NCAAM03.
+ NOTE: There were 73 observations read from the data set WORK.NCAAM04.
+ NOTE: The data set WORK.NCAAM_MM has 29 observations and 8 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.00 seconds
+       cpu time            0.00 seconds
+       
+ 
+ 153        
+ 154        
+ 155        
+ 156        /* Question 8 - use SQL to print player, team, and PPG from the merged data
+ 157            The SQL statement should sort the list by descending PPG*/
+ 158        
+ 159        title1 'Players Who Played in Both 2003 and 2004 Tournaments';
+ 160        title2 'NOTE: PPG is from 2004';
+ 161        footnote1 ' PPG is from year 2004 because I specified the 2004 data set second in the above match-merge';
+ 162        footnote2 'The second data set field names overwrite those of the first if identically named';
+ 163        proc sql;
+ 164        select
+ 165        player
+ 166        , team
+ 167        , ppg
+ 168        from
+ 169        ncaam_mm
+ 170        order by
+ 171        ppg descending
+ 172        ;
+ 173        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           0.07 seconds
+       cpu time            0.06 seconds
+       
+ 
+ 174        
+ 175        /* Question 9 - Match merge ncaam03, ncaam04, and ncaam06 into a single data set */
+ 176        /* Use data set options as needed so that the resulting data set has the variables
+ 177            player, team, ppg2003 ppg2004, ppg2006*/
+ 178        /* use a length statement to set the length of the player variable to match the longest size of the player
+ 179          variable from the three data sets*/
+ 180        
+ 181        proc sort data=sasdata.ncaam03 (keep=player team ppg) out=ncaam03 (rename=(ppg=ppg_2003));
+ NOTE: Data file SASDATA.NCAAM03.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 182            by player team;
+ 183        
+ 
+ NOTE: There were 267 observations read from the data set SASDATA.NCAAM03.
+ NOTE: The data set WORK.NCAAM03 has 267 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.02 seconds
+       cpu time            0.02 seconds
+       
+ 184        proc sort data=sasdata.ncaam04 (keep= player team ppg) out=ncaam04 (rename=(ppg=ppg_2004));
+ 
+ NOTE: Data file SASDATA.NCAAM04.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 185            by player team;
+ 186        
+ 
+ NOTE: There were 73 observations read from the data set SASDATA.NCAAM04.
+ NOTE: The data set WORK.NCAAM04 has 73 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.02 seconds
+       cpu time            0.02 seconds
+       
+ 187        proc sort data=sasdata.ncaam06 (keep= player school ppg) out=ncaam06 (rename=(school=team ppg=ppg_2006));
+ 
+ NOTE: Data file SASDATA.NCAAM06.DATA is in a format that is native to another host, or the file encoding does not match the session 
+       encoding. Cross Environment Data Access will be used, which might require additional CPU resources and might reduce 
+       performance.
+ 188            by player school;
+ 189        
+ 
+ NOTE: There were 193 observations read from the data set SASDATA.NCAAM06.
+ NOTE: The data set WORK.NCAAM06 has 193 observations and 3 variables.
+ NOTE: PROCEDURE SORT used (Total process time):
+       real time           0.02 seconds
+       cpu time            0.01 seconds
+       
+ 190        data ncaam_tot;
+ 
+ 191        /* Use a length statement to match the length of the longest player name from the incoming sets*/
+ 192            length player $23.;
+ 193            set ncaam03
+ 194                ncaam04
+ 195                ncaam06
+ 196            ;
+ 197            by player team;
+ 198        run;
+ 
+ NOTE: There were 267 observations read from the data set WORK.NCAAM03.
+ NOTE: There were 73 observations read from the data set WORK.NCAAM04.
+ NOTE: There were 193 observations read from the data set WORK.NCAAM06.
+ NOTE: The data set WORK.NCAAM_TOT has 533 observations and 5 variables.
+ NOTE: DATA statement used (Total process time):
+       real time           0.01 seconds
+       cpu time            0.00 seconds
+       
+ 
+ 199        
+ 200        /* Question 10 - Create a SQL procedure with multiple statements*/
+ 201        
+ 202        footnote; /* Drop the previous footnotes*/
+ 203        title 'Three-year NCAA Tournament Statistics'; /*Bring in a new title*/
+ 204        
+ 205        proc sql feedback;
+ 206        /* Statement 1 must write a list of all columns to the log all of the columns and their attributes of the previous data
+ 206      ! step */
+ 207        validate
+ 208        select
+ 209        *
+ 210        from
+ 211        ncaam_tot
+ 212        ;
+ NOTE: Statement transforms to:
+ validate 
+         select NCAAM_TOT.player, NCAAM_TOT.Team, NCAAM_TOT.ppg_2003, NCAAM_TOT.ppg_2004, NCAAM_TOT.ppg_2006
+           from WORK.NCAAM_TOT;
+ 
+ NOTE: PROC SQL statement has valid syntax.
+ 213        
+ 214        /* statement 2 will print the data portion of that set in the order shown */
+ 215        select
+ 216        player
+ 217        , team
+ 218        , ppg_2003 label = "2003 PPG"
+ 219        , ppg_2004 label = "2004 PPG"
+ 220        , ppg_2006 label = "2006 PPG"
+ 221        from
+ 222        ncaam_tot
+ 223        ;
+ NOTE: Statement transforms to:
+ 
+         select NCAAM_TOT.player, NCAAM_TOT.Team, NCAAM_TOT.ppg_2003 label='2003 PPG', NCAAM_TOT.ppg_2004 label='2004 PPG', 
+ NCAAM_TOT.ppg_2006 label='2006 PPG'
+           from WORK.NCAAM_TOT;
+ 
+ 224        quit;
+ NOTE: PROCEDURE SQL used (Total process time):
+       real time           1.05 seconds
+       cpu time            1.05 seconds
+       
+ 
+ 225        
+ 226        /* Question 11 - use a single proc step to print the descriptor portion of all of the data sets in your work library */
+ 227        
+ 228        title 'Descriptor Portion of Data Sets in the Work Library';
+ 229        proc contents data=work._all_;
+ 230        run;
+ 
+ NOTE: PROCEDURE CONTENTS used (Total process time):
+       real time           0.68 seconds
+       cpu time            0.67 seconds
+       
+ 
+ 231        
+ 232        
+ 233        /* Question 12 - End the program with the appropriate housekeeping steps to ensure titles and footnotes do not carry over
+ 233      !  to the next
+ 234           program that is executed */
+ 235        
+ 236        title;
+ 237        footnote;
+ 238        
+ 239        /*close the output destination*/
+ 240        ods pdf close;
+ 241        
+ 242        
+ 243        OPTIONS NONOTES NOSTIMER NOSOURCE NOSYNTAXCHECK;
+ 256        
